@@ -1,0 +1,158 @@
+<?php 
+include_once("includes/config.php");
+
+$merchant_id         = $_POST['merchant_id'];
+$order_id             = $_POST['order_id'];
+$payment_id =$_POST['payment_id'];
+$method = $_POST['method'];
+$payhere_amount     = $_POST['payhere_amount'];
+$payhere_currency    = $_POST['payhere_currency'];
+$status_code         = $_POST['status_code'];
+$card_holder_name = $_POST['card_holder_name'];
+$card_no = $_POST['card_no'];
+$status_message = $_POST['status_message'];
+$card_expiry = $_POST['card_expiry'];
+$md5sig                = $_POST['md5sig'];
+
+$merchant_secret = '0272636c57efdb4bb5a2097ee5a8fcd4'; 
+
+$local_md5sig = strtoupper (md5 ( $merchant_id . $order_id . $payhere_amount . $payhere_currency . $status_code . strtoupper(md5($merchant_secret)) ) );
+
+if (($local_md5sig === $md5sig) AND ($status_code == 2) ){
+       $sql = "SELECT * FROM pending_orders WHERE ref = '$order_id'";
+$resultset = mysqli_query($bd, $sql) or die("database error:". mysqli_error($bd));
+$row = mysqli_fetch_assoc($resultset);
+
+    $refno=$row['ref'];
+    $tot=$row['total'];
+          $userId=$row['userId'];
+           $qty=$row['quantity'];
+           $tax=$row['Tax'];
+           $dis=$row['dis'];
+            $ship=$row['shippingCost'];
+            $orderday=$row['orderDay'];
+            $delday=$row['delDay'];
+            $shipaddress=$row['shippingAddress'];
+              $loyalty=$tot/100;
+              $loyalty1=number_format($loyalty,1);
+
+
+	$st1= mysqli_query($bd,"insert into orders(ref,userId,quantity,shippingCost,Tax,total,discount,orderday,delDay,paymentMethod,shippingAddress,txn_id,payment_status) values('$order_id','$userId','$qty','$ship','$tax','$tot','$dis','$orderday','$delday','$method','$shipaddress','$payment_id','$payment_status')");
+$loyal=$_POST['loyalty'];
+        
+        $st3=mysqli_query($bd,"insert into notification (user_id,notification,message,count) values('$userId','Your Order Place Successfully!','Your order ID is $order_id .Your order is being processed.Use the Order Tracking Tool to find out where your order is.Thank You!','1')");
+        $st4=mysqli_query($bd,"insert into loyalty (user_id,order_id,loyalty_points,txn_id) values('$userId','$order_id','$loyalty1','$payment_id')");
+        $st5=mysqli_query($bd,"insert into card_payments (user_id,order_id,payment_id,payment_method,payhere_amount,klickcom_amount,payment_status,cardHolderName,card_no,card_expiry,status_message) values('$userId','$order_id','$payment_id','$method','$payhere_amount','$tot','$status_code ','$status_code ','$card_holder_name','$card_no','$card_expiry','$status_message')");
+
+
+    //Insert tansaction data into the database
+    mysqli_query($bd, "INSERT INTO payments(item_number,txn_id,payment_gross,currency_code,payment_status) VALUES('".$order_id."','".$payment_id."','".$payhere_amount."','".$payhere_currency."','".$status_code."')");
+	$last_insert_id = mysqli_insert_id($bd); 
+	
+date_default_timezone_set('Asia/Colombo');// change according timezone
+$currentTime = date( 'd-m-Y h:i:s A', time () );	
+	
+	$sql2 =mysqli_query($bd, "SELECT * FROM users WHERE id = '$userId'");
+	$res2=mysqli_fetch_array($sql2);
+	$user_email=$res2['email'];
+	$fname=$res2['f_name'];
+	$lname=$res2['l_name'];
+	$contactno=$res2['contactno'];
+	$kid=$res2['kid'];
+	
+	
+	if(isset($_POST['send_mail']))
+{
+    $to      = $user_email;
+    $headers = "MIME-Version: 1.0" . "\r\n";
+    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+   $headers .= 'From:  PAYMENT INVOICE<payments@klickcom.com>' . "\r\n";
+    $subject = 'Payment Invoice for Order Number :'.$refno.' ';
+    
+    $message = '
+    
+    
+  <table style="max-width:670px;margin:50px auto 10px;background-color:#fff;padding:50px;-webkit-border-radius:3px;-moz-border-radius:3px;border-radius:3px;-webkit-box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);-moz-box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24); border-top: solid 10px green;">
+    <thead>
+      <tr>
+        <th style="text-align:left;"><img style="max-width: 150px;" src="https://www.klickcom.com/images/logo.png" alt="klickcom"></th>
+        <th style="text-align:right;font-weight:400;">'.$currentTime.'</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="height:35px;"></td>
+      </tr>
+      <tr>
+        <td colspan="2" style="border: solid 1px #ddd; padding:10px 20px;">
+          <p style="font-size:14px;margin:0 0 6px 0;"><span style="font-weight:bold;display:inline-block;min-width:150px">Payment Status</span><b style="color:green;font-weight:normal;margin:0">Success</b></p>
+          <p style="font-size:14px;margin:0 0 6px 0;"><span style="font-weight:bold;display:inline-block;min-width:146px">Order Number</span> '.$order_id.'</p>
+          <p style="font-size:14px;margin:0 0 6px 0;"><span style="font-weight:bold;display:inline-block;min-width:146px">Transaction ID</span> '.$payment_id.'</p>
+          <p style="font-size:14px;margin:0 0 6px 0;"><span style="font-weight:bold;display:inline-block;min-width:146px">Payment Method</span> '.$method.'</p>
+
+          <p style="font-size:14px;margin:0 0 0 0;"><span style="font-weight:bold;display:inline-block;min-width:146px">Order amount</span> USD '.$payhere_amount.'</p>
+
+        </td>
+      </tr>
+      <tr>
+        <td style="height:35px;"></td>
+      </tr>
+      <tr>
+        <td style="width:50%;padding:20px;vertical-align:top">
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px">Name</span> '.$fname.' &nbsp; '.$lname.'  </p>
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px;">Email</span> '.$user_email.'</p>
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px;">Phone</span> '.$contactno.'</p>
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px;">KLICKCOM ID</span> '.$kid.'</p>
+        </td>
+        <td style="width:50%;padding:20px;vertical-align:top">
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px;">Address</span>'.$shipaddress.'</p>
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px;">Number of Items</span> '.$qty.'</p>
+          <p style="margin:0 0 10px 0;padding:0;font-size:14px;"><span style="display:block;font-weight:bold;font-size:13px;">Order Date</span> '.$orderday.'</p>
+          
+        </td>
+      </tr>
+      
+    </tbody>
+    <tfooter>
+      <tr>
+        <td colspan="2" style="font-size:14px;padding:50px 15px 0 15px;">
+          <strong style="display:block;margin:0 0 10px 0;">Regards</strong> www.klickcom.com<br> KLICKCOM, NO:119/1, Mawathura,Gampola, Sri Lanka<br><br>
+          <b>Phone:</b> 077 5 666 242 / 070 6666 242<br>
+          <b>Email:</b> info@klickcom.com
+        </td>
+      </tr>
+    </tfooter>
+  </table>
+
+    ';
+    
+
+    mail($to, $subject, $message, $headers);
+?>
+
+<div class="alert">
+  <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+  Email Send Successfully!
+</div>
+
+<?php 
+
+
+   
+}
+
+
+	
+	
+	
+	
+	unset($_SESSION['cart']);
+       
+        
+        
+}
+        
+?>
+
+
+
