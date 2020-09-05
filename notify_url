@@ -1,0 +1,31 @@
+<?php 
+include_once 'config.php';
+$merchant_id         = $_POST['merchant_id'];
+$order_id             = $_POST['order_id'];
+$payment_id =$_POST['payment_id'];
+$method = $_POST['method'];
+$payhere_amount     = $_POST['payhere_amount'];
+$payhere_currency    = $_POST['payhere_currency'];
+$status_code         = $_POST['status_code'];
+$card_holder_name = $_POST['card_holder_name'];
+$card_no = $_POST['card_no'];
+$status_message = $_POST['status_message'];
+$card_expiry = $_POST['card_expiry'];
+
+
+
+if ($status_code == 2){
+
+
+   $sql= mysqli_query($bd, "INSERT INTO payments(item_number,txn_id,payment_gross,currency_code,payment_status) VALUES('".$order_id."','".$payment_id."','".$payhere_amount."','".$payhere_currency."','".$status_code."')");
+
+
+       
+        
+        
+}else{
+          echo "error";
+
+}
+    
+?>
